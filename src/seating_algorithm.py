@@ -198,12 +198,14 @@ try:
             singles_pairs.append((a, b))
             used.add(a)
             used.add(b)
+
         while len(lower) >= 2:
             a = lower.pop(0)
             b = lower.pop(0)
             singles_pairs.append((a, b))
             used.add(a)
             used.add(b)
+            
         while len(upper) >= 2:
             a = upper.pop(0)
             b = upper.pop(0)
