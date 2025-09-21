@@ -26,10 +26,13 @@ try:
             total INT NOT NULL,
             PRIMARY KEY (class, section)
         );
-                
+                                   
     """)
 
+    cursor.execute("TRUNCATE TABLE extra_classes")
+
     def pair_6_and_9(cursor):
+
         def get_strength(item):
             return item[4]
 
@@ -43,6 +46,7 @@ try:
         min_len = min(len6, len9)
 
         extra_sections = []
+
         if len6 > len9:
             extra_sections = sections_6[min_len:]
             sections_6 = sections_6[:min_len]
@@ -54,9 +58,10 @@ try:
             cursor.execute("INSERT INTO extra_classes VALUES (%s, %s, %s, %s, %s)", row)
 
         pairs = []
+
         for s6, s9 in zip(sections_6, sections_9):
-            _, sec6, _, _, total6 = s6
-            _, sec9, _, _, total9 = s9
+            sec6, total6 = s6[1], s6[4]
+            sec9, total9 = s9[1], s9[4]
             pairs.append((sec6, total6, sec9, total9, total6 + total9))
 
         return pairs
