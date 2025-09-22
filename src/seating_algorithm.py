@@ -241,19 +241,30 @@ try:
     def pairing_extra_classes(cursor):
 
         cursor.execute("SELECT * FROM extra_classes")
-        extra_classes =  cursor.fetchall()
+        extra_classes = cursor.fetchall()
         extra_classes.sort(key=get_total)
 
+        used_indexes = set()
         pairs = []
 
-        while len([sec[0] for sec in extra_classes]) > 1:
-            sec1 = extra_classes.pop(0)
-            for sec2 in extra_classes[::-1]:
+        for i in range(len(extra_classes)):
+            if i in used_indexes:
+                continue
+            sec1 = extra_classes[i]
+            for j in range(len(extra_classes) - 1, i, -1):
+                if j in used_indexes:
+                    continue
+                sec2 = extra_classes[j]
                 if sec1[0] != sec2[0]:
-                    pairs.append((sec1,sec2))
+                    pairs.append((sec1, sec2))
+                    used_indexes.add(i)
+                    used_indexes.add(j)
                     break
-        
-        pairs.extend([(sec, None) for sec in extra_classes])
+
+        for i in range(len(extra_classes)):
+            if i not in used_indexes:
+                pairs.append((extra_classes[i], None))
+                
         return pairs
 
             
@@ -268,3 +279,4 @@ try:
 
 except Exception as e:
     print("Error while connecting to database:", e)
+
