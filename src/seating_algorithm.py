@@ -29,7 +29,31 @@ try:
                    
     """)
 
+    cursor.execute("CREATE TABLE IF NOT EXISTS combined_classes LIKE classes")
+
+    cursor.execute("""
+
+            CREATE TABLE IF NOT EXISTS alloted_rooms(
+                   room1 VARCHAR(20),
+                   room2 VARCHAR(20),
+                   class1 VARCHAR(5),
+                   section1 VARCHAR(5),
+                   class2 VARCHAR(5),
+                   section2 VARCHAR(5),
+                   total INT,
+                   PRIMARY KEY (room1, room2)
+            );
+
+    """)
+
     cursor.execute("TRUNCATE TABLE extra_classes")
+    cursor.execute("TRUNCATE TABLE combined_classes")
+    cursor.execute("TRUNCATE TABLE alloted_rooms")
+
+    cursor.execute("INSERT INTO combined_classes SELECT * FROM classes")
+
+    conn.commit()
+
     exam_date = input("Enter exam date (YYYY-MM-DD): ")
 
     def get_classes_on_date(cursor):
@@ -55,7 +79,8 @@ try:
     def get_total(section):
         return section[4]
 
-    def combine_small_sections(sections, min_size=30):
+    def combine_small_sections(sections, cursor, min_size=30):
+
         combined = []
         temp = []
         total = 0
@@ -91,6 +116,12 @@ try:
                         boys += s[2]
                         girls += s[3]
                         tot += s[4]
+                        cursor.execute("DELETE FROM combined_classes WHERE class = %s AND section = %s", (s[0], s[1]))
+
+                    cursor.execute(
+                        "INSERT INTO combined_classes (class, section, boys, girls, total) VALUES (%s, %s, %s, %s, %s)",
+                        (class_, sections_str, boys, girls, tot)
+                    )
 
                     combined.append((class_, sections_str, boys, girls, tot))
                     temp = []
@@ -138,6 +169,7 @@ try:
         leftovers = leftovers1 + leftovers2
         return pairs, leftovers
 
+
     def pair_classes(cursor):
         classes_with_exam = get_classes_on_date(cursor)
 
@@ -162,8 +194,8 @@ try:
         for a, b in preferred_pairs:
 
             if a in present and b in present:
-                sec_a = combine_small_sections(class_data[a])
-                sec_b = combine_small_sections(class_data[b])
+                sec_a = combine_small_sections(class_data[a], cursor)
+                sec_b = combine_small_sections(class_data[b], cursor)
                 pairs, leftover_secs = pair_sections_by_total(sec_a, sec_b)
                 paired_sections.extend(pairs)
                 leftovers.extend(leftover_secs)
@@ -216,8 +248,8 @@ try:
         leftovers_classes = lower + upper
 
         for a, b in singles_pairs:
-            sec_a = combine_small_sections(class_data[a])
-            sec_b = combine_small_sections(class_data[b])
+            sec_a = combine_small_sections(class_data[a], cursor)
+            sec_b = combine_small_sections(class_data[b], cursor)
             pairs, leftover_secs = pair_sections_by_total(sec_a, sec_b)
             paired_sections.extend(pairs)
             leftovers.extend(leftover_secs)
@@ -236,8 +268,7 @@ try:
         conn.commit()
         return paired_sections, leftovers
     
-    
-    
+
     def pairing_extra_classes(cursor):
 
         cursor.execute("SELECT * FROM extra_classes")
@@ -264,14 +295,68 @@ try:
         for i in range(len(extra_classes)):
             if i not in used_indexes:
                 pairs.append((extra_classes[i], None))
-                
         return pairs
+    
+    def upload_pairing_data(cursor):
+        pairs = pair_classes(cursor)[0] + pairing_extra_classes(cursor)
 
+        cursor.execute("SELECT * FROM rooms")
+        rooms = cursor.fetchall()
+        used_rooms = []
+
+        for cls1, cls2 in pairs:
+            if cls2 is not None:
+                total = cls1[4] + cls2[4]
+
+                room1 = None
+                for room in rooms:
+                    if room not in used_rooms and room[1] >= cls1[4]:
+                        room1 = room
+                        break
+
+                room2 = None
+                if room1:
+                    for room in rooms:
+                        if room not in used_rooms and room != room1 and (room[1] + room1[1]) >= total:
+                            room2 = room
+                            break
+
+                if room1 and room2:
+                    used_rooms.append(room1)
+                    used_rooms.append(room2)
+                    cursor.execute(
+                        "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (room1[0], room2[0], cls1[0], cls1[1], cls2[0], cls2[1], total)
+                    )
+                else:
+                    print(f"Could not find two rooms for classes {cls1} and {cls2}")
+
+            else:
+                room1 = None
+                for room in rooms:
+                    if room not in used_rooms and room[1] >= cls1[4]:
+                        room1 = room
+                        break
+
+                if room1:
+                    used_rooms.append(room1)
+                    cursor.execute(
+                        "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (room1[0], 0, cls1[0], cls1[1], "NULL", "NULL", cls1[4])
+                    )
+                else:
+                    print(f"Could not find a room for class {cls1}")
+
+
+        conn.commit()
             
-    pairs, leftovers = pair_classes(cursor)
-    print("Pairs:", pairs)
-    print("Leftovers:", leftovers)
-    print("Extra classes pairs:", pairing_extra_classes(cursor))
+    #pairs, leftovers = pair_classes(cursor)
+    #print("Pairs:", pairs)
+    #print("Leftovers:", leftovers)
+    #print("Extra classes pairs:", pairing_extra_classes(cursor))
+    upload_pairing_data(cursor)
 
     cursor.close()
     conn.close()
@@ -279,4 +364,3 @@ try:
 
 except Exception as e:
     print("Error while connecting to database:", e)
-
