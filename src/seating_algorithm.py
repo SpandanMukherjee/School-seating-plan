@@ -305,50 +305,39 @@ try:
         used_rooms = []
 
         for cls1, cls2 in pairs:
-            if cls2 is not None:
-                total = cls1[4] + cls2[4]
+            total = cls1[4] + (cls2[4] if cls2 else 0)
 
-                room1 = None
+            room1 = None
+            for room in rooms:
+                if room not in used_rooms:
+                    room1 = room
+                    break
+
+            room2 = None
+            if room1:
                 for room in rooms:
-                    if room not in used_rooms and room[1] >= cls1[4]:
-                        room1 = room
-                        break
-
-                room2 = None
-                if room1:
-                    for room in rooms:
-                        if room not in used_rooms and room != room1 and (room[1] + room1[1]) >= total:
+                    if room not in used_rooms and room != room1:
+                        if room1[1] + room[1] >= total:
                             room2 = room
                             break
 
-                if room1 and room2:
-                    used_rooms.append(room1)
-                    used_rooms.append(room2)
-                    cursor.execute(
-                        "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
-                        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (room1[0], room2[0], cls1[0], cls1[1], cls2[0], cls2[1], total)
-                    )
-                else:
-                    print(f"Could not find two rooms for classes {cls1} and {cls2}")
+            if room1 and room2:
+                used_rooms.append(room1)
+                used_rooms.append(room2)
 
+                cursor.execute(
+                    "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (
+                        room1[0], room2[0],
+                        cls1[0], cls1[1],
+                        cls2[0] if cls2 else "NULL",
+                        cls2[1] if cls2 else "NULL",
+                        total
+                    )
+                )
             else:
-                room1 = None
-                for room in rooms:
-                    if room not in used_rooms and room[1] >= cls1[4]:
-                        room1 = room
-                        break
-
-                if room1:
-                    used_rooms.append(room1)
-                    cursor.execute(
-                        "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
-                        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (room1[0], 0, cls1[0], cls1[1], "NULL", "NULL", cls1[4])
-                    )
-                else:
-                    print(f"Could not find a room for class {cls1}")
-
+                print(f"Could not find two rooms for classes: {cls1} and {cls2}")
 
         conn.commit()
             
@@ -356,6 +345,7 @@ try:
     #print("Pairs:", pairs)
     #print("Leftovers:", leftovers)
     #print("Extra classes pairs:", pairing_extra_classes(cursor))
+
     upload_pairing_data(cursor)
 
     cursor.close()
