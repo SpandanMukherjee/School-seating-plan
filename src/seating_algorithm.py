@@ -49,11 +49,8 @@ try:
     cursor.execute("TRUNCATE TABLE extra_classes")
     cursor.execute("TRUNCATE TABLE combined_classes")
     cursor.execute("TRUNCATE TABLE alloted_rooms")
-
     cursor.execute("INSERT INTO combined_classes SELECT * FROM classes")
-
     conn.commit()
-
     exam_date = input("Enter exam date (YYYY-MM-DD): ")
 
     def get_classes_on_date(cursor):
@@ -169,7 +166,6 @@ try:
         leftovers = leftovers1 + leftovers2
         return pairs, leftovers
 
-
     def pair_classes(cursor):
         classes_with_exam = get_classes_on_date(cursor)
 
@@ -260,6 +256,7 @@ try:
                 leftovers.append(section)
 
         for section_tuple in leftovers:
+
             cursor.execute(
                 "INSERT INTO extra_classes (class, section, boys, girls, total) VALUES (%s, %s, %s, %s, %s)",
                 section_tuple
@@ -270,22 +267,26 @@ try:
     
 
     def pairing_extra_classes(cursor):
-
         cursor.execute("SELECT * FROM extra_classes")
         extra_classes = cursor.fetchall()
         extra_classes.sort(key=get_total)
-
         used_indexes = set()
         pairs = []
 
         for i in range(len(extra_classes)):
+
             if i in used_indexes:
                 continue
+
             sec1 = extra_classes[i]
+
             for j in range(i + 1, len(extra_classes)):
+
                 if j in used_indexes:
                     continue
+
                 sec2 = extra_classes[j]
+
                 if sec1[0] != sec2[0]:
                     pairs.append((sec1, sec2))
                     used_indexes.add(i)
@@ -293,30 +294,36 @@ try:
                     break
 
         for i in range(len(extra_classes)):
+
             if i not in used_indexes:
                 pairs.append((extra_classes[i], None))
+
         return pairs
     
     def upload_pairing_data(cursor):
         pairs = pair_classes(cursor)[0] + pairing_extra_classes(cursor)
-
         cursor.execute("SELECT * FROM rooms")
         rooms = cursor.fetchall()
         used_rooms = []
 
         for cls1, cls2 in pairs:
             total = cls1[4] + (cls2[4] if cls2 else 0)
-
             room1 = None
+
             for room in rooms:
+
                 if room not in used_rooms:
                     room1 = room
                     break
 
             room2 = None
+
             if room1:
+
                 for room in rooms:
+
                     if room not in used_rooms and room != room1:
+
                         if room1[1] + room[1] >= total:
                             room2 = room
                             break
@@ -327,8 +334,7 @@ try:
 
                 cursor.execute(
                     "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
-                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                    (
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s)", (
                         room1[0], room2[0],
                         cls1[0], cls1[1],
                         cls2[0] if cls2 else "NULL",
@@ -347,7 +353,6 @@ try:
     #print("Extra classes pairs:", pairing_extra_classes(cursor))
 
     upload_pairing_data(cursor)
-
     cursor.close()
     conn.close()
     print("Successful completion of all required tasks")
