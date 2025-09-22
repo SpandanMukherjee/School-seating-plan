@@ -236,9 +236,31 @@ try:
         conn.commit()
         return paired_sections, leftovers
     
+    
+    
+    def pairing_extra_classes(cursor):
+
+        cursor.execute("SELECT * FROM extra_classes")
+        extra_classes =  cursor.fetchall()
+        extra_classes.sort(key=get_total)
+
+        pairs = []
+
+        while len([sec[0] for sec in extra_classes]) > 1:
+            sec1 = extra_classes.pop(0)
+            for sec2 in extra_classes[::-1]:
+                if sec1[0] != sec2[0]:
+                    pairs.append((sec1,sec2))
+                    break
+        
+        pairs.extend([(sec, None) for sec in extra_classes])
+        return pairs
+
+            
     pairs, leftovers = pair_classes(cursor)
     print("Pairs:", pairs)
     print("Leftovers:", leftovers)
+    print("Extra classes pairs:", pairing_extra_classes(cursor))
 
     cursor.close()
     conn.close()
