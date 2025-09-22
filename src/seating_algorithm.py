@@ -77,7 +77,6 @@ try:
         return section[4]
 
     def combine_small_sections(sections, cursor, min_size=30):
-
         combined = []
         temp = []
         total = 0
@@ -264,95 +263,134 @@ try:
 
         conn.commit()
         return paired_sections, leftovers
-    
 
     def pairing_extra_classes(cursor):
         cursor.execute("SELECT * FROM extra_classes")
         extra_classes = cursor.fetchall()
-        extra_classes.sort(key=get_total)
-        used_indexes = set()
+        class_groups = {}
+
+        for sec in extra_classes:
+            class_name = sec[0]
+
+            if class_name not in class_groups:
+                class_groups[class_name] = []
+
+            class_groups[class_name].append(sec)
+
         pairs = []
 
-        for i in range(len(extra_classes)):
+        while True:
+            classes_left = []
 
-            if i in used_indexes:
-                continue
+            for cls in class_groups:
+                
+                if len(class_groups[cls]) > 0:
+                    classes_left.append(cls)
 
-            sec1 = extra_classes[i]
+            if len(classes_left) < 2:
+                break
 
-            for j in range(i + 1, len(extra_classes)):
+            class1 = classes_left[0]
+            class2 = classes_left[1]
+            sections1 = class_groups[class1]
+            sections2 = class_groups[class2]
+            section_pairs, leftovers = pair_sections_by_total(sections1, sections2)
 
-                if j in used_indexes:
-                    continue
+            for p in section_pairs:
+                pairs.append(p)
 
-                sec2 = extra_classes[j]
+            class_groups[class1] = []
+            class_groups[class2] = []
 
-                if sec1[0] != sec2[0]:
-                    pairs.append((sec1, sec2))
-                    used_indexes.add(i)
-                    used_indexes.add(j)
-                    break
+            for sec in leftovers:
 
-        for i in range(len(extra_classes)):
+                if sec[0] == class1:
+                    class_groups[class1].append(sec)
+                elif sec[0] == class2:
+                    class_groups[class2].append(sec)
 
-            if i not in used_indexes:
-                pairs.append((extra_classes[i], None))
+        for cls in class_groups:
+
+            for sec in class_groups[cls]:
+                pairs.append((sec, None))
 
         return pairs
+
+    def get_capacity(room):
+        return room[1]
     
+    def find_best_room_pair(total_students, available_rooms):
+
+        if not available_rooms or len(available_rooms) < 2:
+            return None, None
+
+        # Sort rooms by capacity to enable efficient searching
+        rooms = sorted(available_rooms, key=get_capacity)
+        left = 0
+        right = len(rooms) - 1
+        best_pair = (None, None)
+        smallest_capacity = float('inf')
+
+        while left < right:
+            current_capacity = rooms[left][1] + rooms[right][1]
+
+            if current_capacity >= total_students:
+                # This is a valid pair. Is it the best one we've seen so far?
+                if current_capacity < smallest_capacity:
+                    smallest_capacity = current_capacity
+                    best_pair = (rooms[left], rooms[right])
+                # Since we want the snuggest fit, try a smaller room by moving the right pointer
+                right -= 1
+            else:
+                # The capacity is too small, need a bigger room. Move the left pointer.
+                left += 1
+                
+        return best_pair[0], best_pair[1]
+
     def upload_pairing_data(cursor):
-        pairs = pair_classes(cursor)[0] + pairing_extra_classes(cursor)
+        # Note: This combines the pairing logic for clarity
+        initial_pairs, leftovers = pair_classes(cursor)
+        extra_pairs = pairing_extra_classes(cursor) # Still reads from DB as per your design
+        all_pairs = initial_pairs + extra_pairs
+
         cursor.execute("SELECT * FROM rooms")
-        rooms = cursor.fetchall()
-        used_rooms = []
+        # Using a list of rooms that we can modify
+        available_rooms = cursor.fetchall()
 
-        for cls1, cls2 in pairs:
-            total = cls1[4] + (cls2[4] if cls2 else 0)
-            room1 = None
+        for cls1, cls2 in all_pairs:
+            total_students = cls1[4] + (cls2[4] if cls2 else 0)
 
-            for room in rooms:
+            # Find the best fitting pair of rooms from the ones currently available
+            room1, room2 = find_best_room_pair(total_students, available_rooms)
 
-                if room not in used_rooms:
-                    room1 = room
-                    break
-
-            room2 = None
-
-            if room1:
-
-                for room in rooms:
-
-                    if room not in used_rooms and room != room1:
-
-                        if room1[1] + room[1] >= total:
-                            room2 = room
-                            break
-
-            if room1 and room2:
-                used_rooms.append(room1)
-                used_rooms.append(room2)
+            if room1 and room2:                
+                # Remove the used rooms from the available list
+                available_rooms.remove(room1)
+                available_rooms.remove(room2)
 
                 cursor.execute(
                     "INSERT INTO alloted_rooms (room1, room2, class1, section1, class2, section2, total) "
                     "VALUES (%s, %s, %s, %s, %s, %s, %s)", (
                         room1[0], room2[0],
                         cls1[0], cls1[1],
-                        cls2[0] if cls2 else "NULL",
-                        cls2[1] if cls2 else "NULL",
-                        total
+                        cls2[0] if cls2 else None,
+                        cls2[1] if cls2 else None,
+                        total_students
                     )
                 )
             else:
-                print(f"Could not find two rooms for classes: {cls1} and {cls2}")
+                # Handle the case where no suitable pair of rooms is found
+                print(f"Could not find two rooms for classes: {cls1} and {cls2} (Total: {total_students})")
 
         conn.commit()
-            
+    
     #pairs, leftovers = pair_classes(cursor)
     #print("Pairs:", pairs)
     #print("Leftovers:", leftovers)
     #print("Extra classes pairs:", pairing_extra_classes(cursor))
 
     upload_pairing_data(cursor)
+    conn.commit()
     cursor.close()
     conn.close()
     print("Successful completion of all required tasks")
