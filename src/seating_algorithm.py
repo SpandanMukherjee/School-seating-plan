@@ -282,7 +282,7 @@ try:
             if i in used_indexes:
                 continue
             sec1 = extra_classes[i]
-            for j in range(len(extra_classes) - 1, i, -1):
+            for j in range(i + 1, len(extra_classes)):
                 if j in used_indexes:
                     continue
                 sec2 = extra_classes[j]
@@ -354,3 +354,4 @@ try:
 
 except Exception as e:
     print("Error while connecting to database:", e)
+
