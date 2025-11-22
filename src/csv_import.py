@@ -48,10 +48,7 @@ try:
     cursor.execute("""
                    
         CREATE TABLE IF NOT EXISTS rooms(
-            room_no VARCHAR(20) PRIMARY KEY,
-            capacity INT NOT NULL,
-            `rows` INT NOT NULL,
-            `columns` INT NOT NULL
+            room_no VARCHAR(20) PRIMARY KEY
         );
                    
     """)
@@ -70,7 +67,7 @@ try:
 
     import_csv_to_table("data/classes.csv", "classes", ["class", "section", "boys", "girls", "total"])
     import_csv_to_table("data/exam_fixture.csv", "exam_fixture", ["exam_date", "VI", "VII", "VIII", "IX", "X", "XI", "XII"])
-    import_csv_to_table("data/rooms.csv", "rooms", ["room_no", "capacity", "`rows`", "`columns`"])
+    import_csv_to_table("data/rooms.csv", "rooms", ["room_no"])
 
     conn.commit()
     cursor.close()
