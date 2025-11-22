@@ -328,9 +328,8 @@ try:
             if room1:
                 for room in rooms:
                     if room not in used_rooms and room != room1:
-                        if room1[1] + room[1] >= total:
-                            room2 = room
-                            break
+                        room2 = room
+                        break
 
             if room1 and room2:
                 used_rooms.append(room1)
@@ -372,30 +371,26 @@ try:
             return seats
 
         for allot in allotments:
-            room1, room2 = allot[0], allot[1]
-            class1, sec1, total1 = allot[2], allot[3], allot[4]
-            class2, sec2, total2 = allot[5], allot[6], allot[7]
+            room1, room2, class1, sec1, total1, class2, sec2, total2, _ = allot
 
-            cursor.execute("SELECT room_no, capacity, `rows`, `columns` FROM rooms WHERE room_no = %s", (room1,))
+            cursor.execute("SELECT room_no FROM rooms WHERE room_no = %s", (room1,))
             r1 = cursor.fetchone()
-            cursor.execute("SELECT room_no, capacity, `rows`, `columns` FROM rooms WHERE room_no = %s", (room2,))
+            cursor.execute("SELECT room_no FROM rooms WHERE room_no = %s", (room2,))
             r2 = cursor.fetchone()
-
-            rows1, rows2 = r1[2], r2[2]
 
             half1_class1 = total1 // 2
             half2_class1 = total1 - half1_class1
-            seat1_r1 = distribute_seating(half1_class1, rows1)
-            seat1_r2 = distribute_seating(half2_class1, rows2)
+            seat1_r1 = distribute_seating(half1_class1, 5)
+            seat1_r2 = distribute_seating(half2_class1, 5)
 
             if class2 and total2:
                 half1_class2 = total2 // 2
                 half2_class2 = total2 - half1_class2
-                seat2_r1 = distribute_seating(half1_class2, rows1)
-                seat2_r2 = distribute_seating(half2_class2, rows2)
+                seat2_r1 = distribute_seating(half1_class2, 5)
+                seat2_r2 = distribute_seating(half2_class2, 5)
             else:
-                seat2_r1 = [0] * rows1
-                seat2_r2 = [0] * rows2
+                seat2_r1 = [0] * 5
+                seat2_r2 = [0] * 5
                 half1_class2 = half2_class2 = 0
 
             text = f"{class1}-{sec1}"
@@ -408,28 +403,23 @@ try:
             room2_c2 = half2_class2
 
             text += (
-                f"\n{r1[0]},{room1_c1},"
-                + (str(room1_c2) if class2 else "")
-                + f",{r1[1]},{r1[2]},{r1[3]}"
+                f"\n{r1[0]},{room1_c1}," + (str(room1_c2) if class2 else "") + ""
             )
-
             text += (
-                f"\n{r2[0]},{room2_c1},"
-                + (str(room2_c2) if class2 else "")
-                + f",{r2[1]},{r2[2]},{r2[3]}\n"
+                f"\n{r2[0]},{room2_c1}," + (str(room2_c2) if class2 else "") + "\n"
             )
 
-            for i in range(rows1):
+            for i in range(5):
                 text += f"({seat1_r1[i]}+{seat2_r1[i]}),"
             text += "\n"
-            for i in range(rows2):
+            for i in range(5):
                 text += f"({seat1_r2[i]}+{seat2_r2[i]}),"
 
             # The text files are generated in the following format:
             
             # class 1, class 2
-            # room number 1, number of students from class 1, number of students from class 2, capacity, rows, columns
-            # room number 2, number of students from class 1, number of students from class 2, capacity, rows, columns
+            # room number 1, number of students from class 1, number of students from class 2
+            # room number 2, number of students from class 1, number of students from class 2
             # pairs with number of students on left and right(different classes) for each column for room 1
             # pairs with number of students on left and right(different classes) for each column for room 2
 
