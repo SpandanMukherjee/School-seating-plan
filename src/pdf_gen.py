@@ -38,11 +38,11 @@ def add_room_page(c, class1 = "Undefined", class2 = "Undefined", room_number = "
     c.setFont('Helvetica', 12)
 
     srt1, srt2 = starts[0] + rolls[0][0] - 1, starts[1] + rolls[0][1] - 1
-    for i in range(6):
-        columnroll = rolls[i] if i<5 else [0,0]
+    for i in range(5):
+        columnroll = rolls[i]
         leftseats, rightseats = gen_spaces(columnroll[0]), gen_spaces(columnroll[1])
         for j in range(5):
-            x0 = 20 + i * 95
+            x0 = 20 + i * 118
             y0 = 60 + j * 48
 
             c.rect(x0, y0, 85, 48)
@@ -56,7 +56,7 @@ def add_room_page(c, class1 = "Undefined", class2 = "Undefined", room_number = "
             for k in range(1, 2):
                 x_sub = x0 + k * 42.5
                 c.line(x_sub, y0, x_sub, y0 + 48)
-        if i < len(rolls) - 1:
+        if i < 4:
             srt1 += rolls[i][0] + rolls[i+1][0]
             srt2 += rolls[i][1] + rolls[i+1][1]
 
@@ -102,4 +102,5 @@ def gen_pdf(pdfname):
     c = canvas.Canvas(pdfname + ".pdf", pagesize=(600, 400))
     send_to_pdf(c)
     c.save()
+
 gen_pdf("all_rooms")
