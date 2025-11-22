@@ -4,6 +4,7 @@ import os
 from reportlab.pdfgen import canvas
 
 folder = "Seating_Plans"
+os.makedirs("PDFs", exist_ok=True)
 
 def parse_rollpairs(line):
     pairs = [p.strip() for p in line.replace("(", "").replace(")", "").split(",") if p.strip()]
@@ -99,7 +100,7 @@ def send_to_pdf(c):
             add_room_page(c, classes[0], classes[1] if len(classes) == 2 else "None", room2[0], starts2, rolls2)
 
 def gen_pdf(pdfname):
-    c = canvas.Canvas(pdfname + ".pdf", pagesize=(600, 400))
+    c = canvas.Canvas("PDFs\\" + pdfname + ".pdf", pagesize=(600, 400))
     send_to_pdf(c)
     c.save()
 
