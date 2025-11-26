@@ -7,6 +7,7 @@ def pdf_gen():
 
     folder = "Seating_Plans"
     institution_name = "BHAVAN'S GANGABUX KANORIA VIDYAMANDIR"
+    os.makedirs("PDFs", exist_ok=True)
 
     def parse_rollpairs(line):
         pairs = [p.strip() for p in line.replace("(", "").replace(")", "").split(",") if p.strip()]
