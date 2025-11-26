@@ -248,7 +248,7 @@ try:
             singles_pairs.append((a, b))
             used.add(a)
             used.add(b)
-            
+
         while len(upper) >= 2:
             a = upper.pop(0)
             b = upper.pop(0)
@@ -278,7 +278,7 @@ try:
 
         conn.commit()
         return paired_sections, leftovers
-    
+
 
     def pairing_extra_classes(cursor):
 
@@ -393,9 +393,9 @@ try:
                 seat2_r2 = [0] * 5
                 half1_class2 = half2_class2 = 0
 
-            text = f"{class1}-{sec1}"
+            text = f"{class1}-{sec1},{total1}"
             if class2:
-                text += f",{class2}-{sec2}"
+                text += f",{class2}-{sec2},{total2}"
 
             room1_c1 = half1_class1
             room1_c2 = half1_class2
@@ -417,7 +417,7 @@ try:
 
             # The text files are generated in the following format:
             
-            # class 1, class 2
+            # class 1, total 1, class 2, total 2
             # room number 1, number of students from class 1, number of students from class 2
             # room number 2, number of students from class 1, number of students from class 2
             # pairs with number of students on left and right(different classes) for each column for room 1
