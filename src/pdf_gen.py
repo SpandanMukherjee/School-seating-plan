@@ -4,7 +4,7 @@ import os
 from reportlab.pdfgen import canvas
 
 folder = "Seating_Plans"
-os.makedirs("PDFs", exist_ok=True)
+institution_name = "BHAVAN'S GANGABUX KANORIA VIDYAMANDIR"
 
 def parse_rollpairs(line):
     pairs = [p.strip() for p in line.replace("(", "").replace(")", "").split(",") if p.strip()]
@@ -23,7 +23,6 @@ def add_room_page(c, class1 = "Undefined", class2 = "Undefined", room_number = "
     def gen_spaces(n):
         return random.sample([0, 1, 2, 3, 4], n)
 
-    institution_name = "BHAVAN'S GANGABUX KANORIA VIDYAMANDIR"
     c.setFont("Helvetica-Bold", 20)
     text_width = c.stringWidth(institution_name, "Helvetica-Bold", 20)
     c.drawString((600 - text_width)/2, 360, institution_name)
@@ -70,7 +69,40 @@ def add_room_page(c, class1 = "Undefined", class2 = "Undefined", room_number = "
 
     c.showPage()
 
-def send_to_pdf(c):
+def gen_cum_chart(c, dict):
+
+    c.setFont("Helvetica-Bold", 20)
+    text_width = c.stringWidth(institution_name, "Helvetica-Bold", 20)
+    c.drawString((600 - text_width)/2, 960, institution_name)
+    c.setFont("Helvetica", 12)
+
+    j = 880
+    x = 557
+    for key in list(dict.keys()):
+        if j == -20:
+            c.showPage()
+            c.setFont("Helvetica-Bold", 20)
+            text_width = c.stringWidth(institution_name, "Helvetica-Bold", 20)
+            c.drawString((600 - text_width)/2, 960, institution_name)
+            c.setFont("Helvetica", 12)
+            j = 880
+        c.rect(20, j, x, 60)
+        j -= 60
+
+        for k in range(2):
+            c.line((x/3)*(k+1) + 20, j + 60, (x/3)*(k+1) + 20, j + 120)
+        c.line(x/3 + 20, j + 90, x + 20, j + 90)
+
+        c.drawString(x/5.4, j + 85, key)
+        c.drawString(x/2, j + 100, f"Roll 1-{dict[key][1] - 1}")
+        c.drawString(x/2, j + 70, f"Roll {dict[key][1] - 1}-{dict[key][0]}")
+        c.drawString(x/1.23, j + 100, f"Room {dict[key][2]}")
+        c.drawString(x/1.23, j + 70, f"Room {dict[key][3]}")
+
+def send_to_pdf(c1, c2):
+
+    class_data = {}
+
     for filename in os.listdir(folder):
         filepath = os.path.join(folder, filename)
         if not os.path.isfile(filepath):
@@ -93,15 +125,22 @@ def send_to_pdf(c):
             starts1 = [1, 1]
             starts2 = [int(room1[1]) + 1, s2]
 
+            class_data[classes[0]] = [classes[1], starts2[0], room1[0], room2[0]]
+            if len(classes) == 4:
+                class_data[classes[2]] = [classes[3], starts2[1], room1[0], room2[0]]
+
             rolls1 = parse_rollpairs(lines[3].strip())
             rolls2 = parse_rollpairs(lines[4].strip())
 
-            add_room_page(c, classes[0], classes[1] if len(classes) == 2 else "None", room1[0], starts1, rolls1)
-            add_room_page(c, classes[0], classes[1] if len(classes) == 2 else "None", room2[0], starts2, rolls2)
+            add_room_page(c1, classes[0], classes[2] if len(classes) == 4 else "None", room1[0], starts1, rolls1)
+            add_room_page(c1, classes[0], classes[2] if len(classes) == 4 else "None", room2[0], starts2, rolls2)
 
-def gen_pdf(pdfname):
-    c = canvas.Canvas("PDFs\\" + pdfname + ".pdf", pagesize=(600, 400))
-    send_to_pdf(c)
-    c.save()
+    gen_cum_chart(c2, class_data)
 
-gen_pdf("all_rooms")
+def gen_pdf(name1, name2):
+    c1 = canvas.Canvas("PDFs\\" + name1 + ".pdf", pagesize=(600, 400))
+    c2 = canvas.Canvas("PDFs\\" + name2 + ".pdf", pagesize=(600, 1000))
+    send_to_pdf(c1, c2)
+    c1.save()
+    c2.save()
+gen_pdf("all_rooms", "cum")
