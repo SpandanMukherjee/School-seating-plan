@@ -19,7 +19,11 @@ def main(password):
         if conn.is_connected():
             print("Successfully connected to the database")
 
-        csv_import.csv_import(cursor, conn)
+        choice = input("Enter c to use current data or i to import data from csv: ").lower()
+
+        if(choice == 'i'):
+            csv_import.csv_import(cursor, conn)
+
         seating_algorithm.seating_algorithm(cursor, conn)
         cursor.close()
         conn.close()
