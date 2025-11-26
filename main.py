@@ -25,8 +25,8 @@ def main(password):
         conn.close()
         pdf_gen.pdf_gen()
 
-    except:
-        print("Gay ahh mf")
+    except Exception as e:
+        print("Error: ", e)
 
 if __name__ == "__main__":
     main(password)
