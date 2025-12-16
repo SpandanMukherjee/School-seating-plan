@@ -1,5 +1,4 @@
 def seating_algorithm(cursor, conn):
-
     import os
     import shutil
 
@@ -40,7 +39,7 @@ def seating_algorithm(cursor, conn):
         cursor.execute("TRUNCATE TABLE alloted_rooms")
         cursor.execute("INSERT INTO combined_classes SELECT * FROM classes")
         conn.commit()
-        folder = "Seating_Plans"
+        folder = "seating_plans"
 
         if os.path.exists(folder) and os.path.isdir(folder):
 

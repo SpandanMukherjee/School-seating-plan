@@ -1,11 +1,10 @@
 def pdf_gen():
-
     from datetime import datetime
     import random
     import os
     from reportlab.pdfgen import canvas
 
-    folder = "Seating_Plans"
+    folder = "seating_plans"
     institution_name = "BHAVAN'S GANGABUX KANORIA VIDYAMANDIR"
     os.makedirs("PDFs", exist_ok=True)
 

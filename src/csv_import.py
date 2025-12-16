@@ -1,5 +1,4 @@
 def csv_import(cursor, conn):
-
     import csv
 
     try:
